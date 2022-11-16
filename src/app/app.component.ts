@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, HostListener, ViewChild } from '@angular/core';
-
+import { clear, grid, resize } from './utils/canvas';
 // infinite zoom / pan: https://stackoverflow.com/questions/74307643/js-canvas-simulate-infinite-pan-and-zoomable-grid
 // pan & zoom https://codepen.io/chengarda/pen/wRxoyB
 
@@ -20,8 +20,7 @@ export class AppComponent implements AfterViewInit {
       throw new Error('Canvas context is null');
     }
 
-    this.positionCanvas();
-    this.draw();
+    this.resizeCanvas();
   }
 
   draw(): void {
@@ -39,51 +38,24 @@ export class AppComponent implements AfterViewInit {
   }
 
   private drawGrid(): void {
-    const {height, width} = this.whiteboard.nativeElement;
-    const gridGap = 100;
-
-    this.ctx.lineWidth = 1;
-
-    const startX = -this.movedX + (this.movedX % gridGap) + 0.5;
-    const startY = -this.movedY + (this.movedY % gridGap) + 0.5;
-    const correctedHeight = height - this.movedY;
-    const correctedWidth = width - this.movedX;
-
-    for (let x = startX; x < correctedWidth; x += gridGap) {
-      this.ctx.moveTo(x, startY - (this.movedY % gridGap));
-      this.ctx.lineTo(x, correctedHeight);
-    }
-    this.ctx.strokeStyle = '#d4d4d4';
-    this.ctx.stroke();
-
-    for (let y = startY; y < correctedHeight; y += gridGap) {
-      this.ctx.moveTo(startX - (this.movedX % gridGap), y);
-      this.ctx.lineTo(correctedWidth, y);
-    }
-    this.ctx.stroke();
+    grid(this.whiteboard.nativeElement, {
+      lineWidth: 1,
+      strokeStyle: '#d4d4d4',
+      gridGap: 100,
+      correctionX: this.movedX,
+      correctionY: this.movedY
+    });
   }
 
   @HostListener('window:resize')
-  private positionCanvas(): void {
-    const element = this.whiteboard.nativeElement;
-    element.height = window.innerHeight;
-    element.width = window.innerWidth;
+  private resizeCanvas(): void {
+    resize(this.whiteboard.nativeElement);
 
     this.draw();
   }
 
-
   private clearCanvas(): void {
-    const {height, width} = this.whiteboard.nativeElement;
-    // Store the current transformation matrix
-    this.ctx.save();
-
-    // Use the identity matrix while clearing the canvas
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, width, height);
-
-    // Restore the transform
-    this.ctx.restore();
+   clear(this.whiteboard.nativeElement);
   }
 
   private isPanning = false
@@ -95,6 +67,7 @@ export class AppComponent implements AfterViewInit {
     this.startPanX = $event.clientX;
     this.startPanY = $event.clientY;
   }
+
   @HostListener('pointerup', ['$event'])
   pointerUp($event: PointerEvent): void {
     this.isPanning = false;
