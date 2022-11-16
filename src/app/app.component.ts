@@ -24,6 +24,22 @@ export class AppComponent implements AfterViewInit {
     this.draw();
   }
 
+  private scale = 0;
+  private scaleFactor = .00008
+  @HostListener('wheel', ['$event'])
+  onWheel($event: WheelEvent): void {
+    $event.preventDefault();
+    let scale = this.scale - $event.deltaY * this.scaleFactor;
+    scale = Math.max(1, Math.min(10, scale));
+
+    this.scale = scale;
+    this.ctx.translate($event.screenX/this.scale, $event.screenY/this.scale);
+    this.ctx.scale(this.scale, this.scale)
+    this.ctx.translate(-($event.screenX/this.scale), -($event.screenY/this.scale));
+
+    this.draw();
+  }
+
   draw(): void {
     requestAnimationFrame(() => {
       this.clearCanvas();
