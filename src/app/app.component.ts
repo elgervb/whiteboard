@@ -46,17 +46,19 @@ export class AppComponent implements AfterViewInit {
 
     const startX = -this.movedX + (this.movedX % gridGap) + 0.5;
     const startY = -this.movedY + (this.movedY % gridGap) + 0.5;
+    const correctedHeight = height - this.movedY;
+    const correctedWidth = width - this.movedX;
 
-    for (let x = startX; x < width; x += gridGap) {
+    for (let x = startX; x < correctedWidth; x += gridGap) {
       this.ctx.moveTo(x, startY - (this.movedY % gridGap));
-      this.ctx.lineTo(x, height);
+      this.ctx.lineTo(x, correctedHeight);
     }
     this.ctx.strokeStyle = '#d4d4d4';
     this.ctx.stroke();
 
-    for (let y = startY; y < height; y += gridGap) {
+    for (let y = startY; y < correctedHeight; y += gridGap) {
       this.ctx.moveTo(startX - (this.movedX % gridGap), y);
-      this.ctx.lineTo(width, y);
+      this.ctx.lineTo(correctedWidth, y);
     }
     this.ctx.stroke();
   }
