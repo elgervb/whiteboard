@@ -1,0 +1,11 @@
+
+.panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+svg {
+  height: 24px;
+  width: 24px;
+}

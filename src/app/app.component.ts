@@ -1,8 +1,13 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { clear, grid, resize } from './utils/canvas';
 import { CanvasPan } from './utils/canvas/pan';
-// infinite zoom / pan: https://stackoverflow.com/questions/74307643/js-canvas-simulate-infinite-pan-and-zoomable-grid
-// pan & zoom https://codepen.io/chengarda/pen/wRxoyB
+import { CanvasDraw } from './utils/drawing/draw';
+import { BrushType } from './utils/drawing/models';
+
+enum CanvasState  {
+  PAN,
+  DRAW
+}
 
 @Component({
   selector: 'cv-root',
@@ -14,8 +19,13 @@ export class AppComponent implements AfterViewInit {
 
   @ViewChild('whiteboard') whiteboard!: ElementRef<HTMLCanvasElement>;
 
+  CanvasState = CanvasState;
+
+  private state = CanvasState.DRAW;
+
   private ctx: CanvasRenderingContext2D;
   private pan: CanvasPan;
+  private draw: CanvasDraw;
 
   ngAfterViewInit(): void {
     this.ctx = this.whiteboard.nativeElement.getContext('2d');
@@ -24,11 +34,26 @@ export class AppComponent implements AfterViewInit {
     }
 
     this.pan = new CanvasPan(this.whiteboard.nativeElement);
+    this.draw = new CanvasDraw(this.whiteboard.nativeElement, BrushType.pen, {
+      canvas: this.whiteboard.nativeElement,
+      color: '#999',
+      lineWidth: 30,
+      globalAlpha: 1
+    });
 
     this.resizeCanvas();
   }
 
-  draw(): void {
+  setState(canvasState: CanvasState): void {
+    this.state = canvasState;
+  }
+
+  eventTrap($event: MouseEvent) {
+    $event.preventDefault();
+    $event.stopImmediatePropagation();
+  }
+
+  private paint(): void {
     requestAnimationFrame(() => {
       this.clearCanvas();
       this.drawGrid();
@@ -56,7 +81,7 @@ export class AppComponent implements AfterViewInit {
   private resizeCanvas(): void {
     resize(this.whiteboard.nativeElement);
 
-    this.draw();
+    this.paint();
   }
 
   private clearCanvas(): void {
@@ -65,18 +90,33 @@ export class AppComponent implements AfterViewInit {
 
   @HostListener('pointerdown', ['$event'])
   pointerDown($event: PointerEvent): void {
-    this.pan.startPanning({x: $event.clientX, y: $event.clientY});
+    if (this.state === CanvasState.PAN) {
+      this.pan.startPanning({x: $event.clientX, y: $event.clientY});
+    }
+    if (this.state === CanvasState.DRAW) {
+      this.draw.brushDown($event, this.pan.moved);
+    }
   }
 
   @HostListener('pointerup', ['$event'])
   pointerUp($event: PointerEvent): void {
-    this.pan.stopPanning();
+    if (this.state === CanvasState.PAN) {
+      this.pan.stopPanning();
+    }
+    if (this.state === CanvasState.DRAW) {
+      this.draw.brushUp($event, this.pan.moved);
+    }
   }
   @HostListener('pointermove', ['$event'])
   pointerMove($event: PointerEvent): void {
-    if(this.pan.isPanning) {
-      this.pan.move({x: $event.clientX, y: $event.clientY});
-      this.draw();
+    if (this.state === CanvasState.PAN) {
+      if(this.pan.isPanning) {
+        this.pan.move({x: $event.clientX, y: $event.clientY});
+        this.paint();
+      }
+    }
+    if (this.state === CanvasState.DRAW) {
+      this.draw.brushMove($event, this.pan.moved);
     }
   }
 }
